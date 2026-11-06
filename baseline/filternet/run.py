@@ -182,6 +182,8 @@ if __name__ == '__main__':
     )
     if args.output_tag:
         setting = '{}_{}'.format(setting, args.output_tag)
+    if args.data == 'custom':
+        setting += '_standardized'
     if args.overwrite_outputs:
         for folder in [
             os.path.join(args.checkpoints, setting),

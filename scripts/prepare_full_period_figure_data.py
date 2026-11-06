@@ -61,7 +61,7 @@ def fitted_artifacts(
 ) -> dict[str, Path]:
     filternet_setting = (
         f"UHI500City1passes_{filternet_epochs}epochs_PaiFilter_custom_"
-        "sl12_pl1_embed12_hidden64_bs1024_lr2e-05_drop0.0_manuscript_mv24"
+        "sl12_pl1_embed12_hidden64_bs1024_lr2e-05_drop0.0_manuscript_mv24_standardized"
     )
     stmtm_setting = (
         "finetune_STMTM_Exchange_M_sl12_ll0_pl1_dm16_df64_nh4_dh64_el1_"

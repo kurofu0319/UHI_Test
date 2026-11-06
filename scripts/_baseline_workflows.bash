@@ -38,7 +38,7 @@ _baseline_global_armd_checkpoint() {
 
 _baseline_global_filternet_checkpoint() {
   local epochs="${FILTERNET_EPOCHS:-5}"
-  local setting="UHI500City1passes_${epochs}epochs_PaiFilter_custom_sl12_pl1_embed12_hidden64_bs1024_lr2e-05_drop0.0_manuscript_mv24"
+  local setting="UHI500City1passes_${epochs}epochs_PaiFilter_custom_sl12_pl1_embed12_hidden64_bs1024_lr2e-05_drop0.0_manuscript_mv24_standardized"
   printf '%s\n' "${OUTPUT_ROOT}/baselines/filternet/checkpoints/${setting}/checkpoint.pth"
 }
 

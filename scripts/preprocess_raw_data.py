@@ -236,6 +236,26 @@ def extract_gee_epoch_images(
         LOGGER.info("wrote %s", path)
 
 
+def extract_gee_single_image(
+    collection_id: str, band: str, features: Sequence[dict[str, Any]],
+    output_path: Path, *, scale: int = 1000, block_size: int = 10,
+    max_workers: int = 4, tile_scale: int = 4, overwrite: bool = False,
+) -> None:
+    import ee
+    output_path = Path(output_path)
+    ids = [int(item["id"]) for item in features]
+    if not overwrite and _complete(output_path, ids):
+        return
+    image = ee.ImageCollection(collection_id).first().select([band])
+    frame = _mean_frame(
+        image, features, [band], scale=scale, block_size=block_size,
+        max_workers=max_workers, tile_scale=tile_scale,
+    )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_csv(output_path, index=False)
+    LOGGER.info("wrote %s", output_path)
+
+
 def aggregate_land_use(frame: pd.DataFrame) -> pd.DataFrame:
     frame = frame.copy()
     for group, classes in LAND_USE_GROUPS.items():
@@ -271,7 +291,7 @@ def extract_gee_land_use(
     if not overwrite and _complete(output_path, ids):
         return
     blocks = [features[i:i + block_size] for i in range(0, len(features), block_size)]
-    image = ee.Image("JRC/GHSL/P2023A/GHS_BUILT_C/2018").select(["built_characteristics"])
+    image = ee.ImageCollection("JRC/GHSL/P2023A/GHS_BUILT_C").first().select(["built_characteristics"])
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         jobs = {pool.submit(_histogram_block, image, block, scale, tile_scale): i for i, block in enumerate(blocks)}
         done = {jobs[job]: job.result() for job in as_completed(jobs)}
@@ -344,14 +364,21 @@ def validate_raw_layout(raw_root: Path, metrics_path: Path, *, expected_cities: 
         if not path.is_file() or len(pd.read_csv(path)) != EXPECTED_MONTHS:
             raise ValueError(f"missing or incomplete: {path}")
     for directory, prefix, years in (
-        ("GHS_POP", "GHS_POP", GHS_EPOCHS), ("GHS_BUILT_S", "GHS_BUILT_S", GHS_EPOCHS),
-        ("GHS_SMOD", "ghs_smod", GHS_EPOCHS), ("GHS_BUILT_H", "ghs_built_h", (2018,)),
-        ("GHS_BUILT_C", "ghs_built_c", (2018,)),
+        ("GHS_POP", "GHS_POP", GHS_EPOCHS),
+        ("GHS_BUILT_S", "GHS_BUILT_S", GHS_EPOCHS),
+        ("GHS_SMOD", "ghs_smod", GHS_EPOCHS),
     ):
         for year in years:
             path = raw_root / directory / f"{prefix}_{year}.csv"
             if not _complete(path, ids):
                 raise ValueError(f"missing or misaligned: {path}")
+    for directory, filename in (
+        ("GHS_BUILT_H", "ghs_built_h.csv"),
+        ("GHS_BUILT_C", "ghs_built_c.csv"),
+    ):
+        path = raw_root / directory / filename
+        if not _complete(path, ids):
+            raise ValueError(f"missing or misaligned: {path}")
 
 
 def describe_sources() -> pd.DataFrame:

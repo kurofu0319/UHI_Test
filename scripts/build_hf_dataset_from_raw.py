@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from bisect import bisect_right
 import re
 import sys
 from pathlib import Path
@@ -58,7 +59,7 @@ def date_from_index(index: int) -> tuple[int, int]:
 
 
 def epoch_index(target_year: int) -> int:
-    return min((target_year - FIRST_YEAR + 3) // 5, len(GHS_EPOCHS) - 1)
+    return max(0, bisect_right(GHS_EPOCHS, target_year) - 1)
 
 
 def read_indexed(path: Path, columns: list[str] | None = None) -> pd.DataFrame:
@@ -150,10 +151,10 @@ class RawSources:
         self.built_surface = load_epoch_series(raw_data / "GHS_BUILT_S")
         self.urbanization = load_epoch_series(raw_data / "GHS_SMOD")
         self.built_height = read_indexed(
-            raw_data / "GHS_BUILT_H" / "ghs_built_h_2018.csv"
+            raw_data / "GHS_BUILT_H" / "ghs_built_h.csv"
         )
         self.land_use = land_use_table(
-            raw_data / "GHS_BUILT_C" / "ghs_built_c_2018.csv"
+            raw_data / "GHS_BUILT_C" / "ghs_built_c.csv"
         )
 
     def monthly_window(

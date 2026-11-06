@@ -276,12 +276,20 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 outputs = outputs.detach().cpu().numpy()
                 batch_y = batch_y.detach().cpu().numpy()
 
-                if getattr(self.args, 'evaluate_target_only', False):
+                target_only = getattr(self.args, 'evaluate_target_only', False)
+                if target_only:
                     outputs = outputs[:, :, -1:]
                     batch_y = batch_y[:, :, -1:]
                 else:
                     outputs = outputs[:, :, f_dim:]
                     batch_y = batch_y[:, :, f_dim:]
+
+                if test_data.scale:
+                    channels = slice(-1, None) if target_only or f_dim == -1 else slice(None)
+                    scale = test_data.scaler.scale_[channels]
+                    mean = test_data.scaler.mean_[channels]
+                    outputs = outputs * scale + mean
+                    batch_y = batch_y * scale + mean
 
                 pred = outputs
                 true = batch_y
@@ -289,9 +297,11 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 preds.append(pred)
                 trues.append(true)
                 if i % 20 == 0:
-                    input = batch_x.detach().cpu().numpy()
-                    gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
-                    pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
+                    history = batch_x[0, :, -1].detach().cpu().numpy()
+                    if test_data.scale:
+                        history = history * test_data.scaler.scale_[-1] + test_data.scaler.mean_[-1]
+                    gt = np.concatenate((history, true[0, :, -1]), axis=0)
+                    pd = np.concatenate((history, pred[0, :, -1]), axis=0)
                     visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
 
         preds = np.array(preds)
