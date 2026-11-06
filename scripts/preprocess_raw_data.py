@@ -15,7 +15,7 @@ import pandas as pd
 LOGGER = logging.getLogger(__name__)
 FIRST_YEAR, LAST_YEAR = 2003, 2020
 EXPECTED_MONTHS = 216
-GHS_EPOCHS = (2005, 2010, 2015, 2020)
+GHS_EPOCHS = (2000, 2005, 2010, 2015, 2020)
 
 SOURCE_URLS = {
     "UHI intensity": "https://figshare.com/articles/dataset/Global_Urban_Heat_Island_Intensity_Dataset/24821538",

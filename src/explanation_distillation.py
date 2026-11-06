@@ -363,7 +363,7 @@ def parse_args():
     )
     parser.add_argument("--num_workers", type=int, default=2)
     parser.add_argument("--log_interval", type=int, default=20)
-    parser.add_argument("--seed", type=int, default=20261029)
+    parser.add_argument("--seed", type=int, default=20260720)
     parser.add_argument("--torch_dtype", choices=("float16", "bfloat16", "float32"), default="bfloat16")
     parser.add_argument("--lora_r", type=int, default=8)
     parser.add_argument("--lora_alpha", type=int, default=32)

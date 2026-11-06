@@ -28,6 +28,7 @@ UHI_MEMBER_KEYS = [
     ("inference", "UHI-E3LLM", "inference_epoch0"),
     ("inference", "UHI-E3LLM", "inference_epoch1"),
 ]
+UHI_AGGREGATION_KEY = ("inference", "UHI-E3LLM", "prediction_aggregation")
 UHI_DISTILLATION_KEYS = [
     ("training", "UHI-E3LLM", "Distillation_epoch0"),
     ("training", "UHI-E3LLM", "Distillation_epoch1"),
@@ -77,15 +78,23 @@ def summed_record(records: dict, keys: list[tuple[str, str, str]], stage: str) -
 
 def uhi_inference_records(records: dict) -> list[dict]:
     members = [records[key] for key in UHI_MEMBER_KEYS]
-    if {record["unit"] for record in members} != {"ms_per_sample"}:
-        raise ValueError("UHI-E3LLM inference members must use ms_per_sample")
-    protocol_fields = (
-        "batch_size", "warmup_calls", "measured_calls", "timing_protocol",
+    aggregation = records[UHI_AGGREGATION_KEY]
+    if {record["unit"] for record in [*members, aggregation]} != {"ms_per_sample"}:
+        raise ValueError("UHI-E3LLM inference timing records must use ms_per_sample")
+    shared_fields = ("batch_size", "warmup_calls", "measured_calls", "timing_protocol")
+    member_fields = (
         "max_new_tokens", "max_length", "temperature", "input_format",
     )
-    for field in protocol_fields:
+    for field in (*shared_fields, *member_fields):
         if members[0].get("metadata", {}).get(field) != members[1].get("metadata", {}).get(field):
             raise ValueError(f"UHI-E3LLM inference members have different {field}")
+    if any(record.get("metadata", {}).get("timing_scope") != "generation_decode_parse" for record in members):
+        raise ValueError("UHI-E3LLM member records must include decoding and numeric parsing")
+    for field in shared_fields:
+        if aggregation.get("metadata", {}).get(field) != members[0].get("metadata", {}).get(field):
+            raise ValueError(f"UHI-E3LLM aggregation and member records have different {field}")
+    if aggregation.get("metadata", {}).get("members") != len(members):
+        raise ValueError("UHI-E3LLM aggregation must include both inference members")
     hardware = members[0]["hardware"]
     if members[1]["hardware"] != hardware:
         raise ValueError("UHI-E3LLM inference members must use the same hardware")
@@ -96,18 +105,18 @@ def uhi_inference_records(records: dict) -> list[dict]:
         "unit": "ms_per_sample",
         "hardware": hardware,
     }
-    return members + [
+    return members + [aggregation,
         {
             **common,
             "stage": "member_mean",
             "value": total / len(members),
-            "note": "model execution only; mean per distilled policy across epochs 0 and 1",
+            "note": "mean generation, decoding, and numeric parsing time per distilled policy",
         },
         {
             **common,
             "stage": "inference",
-            "value": total,
-            "note": "model execution only; sequential two-member ensemble sum across epochs 0 and 1",
+            "value": total + float(aggregation["value"]),
+            "note": "two-member generation, decoding, numeric parsing, and prediction aggregation",
         },
     ]
 
@@ -121,6 +130,7 @@ def aggregate(raw_dir: Path) -> pd.DataFrame:
     ]
     required.update(baseline_inference_keys)
     required.update(UHI_MEMBER_KEYS)
+    required.add(UHI_AGGREGATION_KEY)
     required.update(UHI_DISTILLATION_KEYS)
     required.update({
         ("training", "ST-MTM", "pretrain"),

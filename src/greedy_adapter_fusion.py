@@ -76,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_new_tokens", type=int, default=19)
     parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--device", default="cuda")
-    parser.add_argument("--seed", type=int, default=20261029)
+    parser.add_argument("--seed", type=int, default=20260720)
     parser.add_argument("--valid_min", type=float, default=-5.0)
     parser.add_argument("--valid_max", type=float, default=5.0)
     parser.add_argument("--max_decimal_places", type=int, default=3)

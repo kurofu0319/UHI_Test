@@ -24,7 +24,7 @@ for method in UHI-E3LLM XGBoost RandomForest LightGBM MLP ARMD FilterNet ST-MTM;
     --predictions "${path}" \
     --output_dir "${OUTPUT_ROOT}/uncertainty/bootstrap/${safe_name}" \
     --replicates 1000 \
-    --seed 20261029 \
+    --seed 20260720 \
     --expected_cities 100 \
     --expected_samples_per_city 36
 done

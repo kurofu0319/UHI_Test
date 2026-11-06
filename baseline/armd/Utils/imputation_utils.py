@@ -67,7 +67,7 @@ class MaskedLoss(nn.Module):
 
         return self.loss(masked_pred, masked_true)
 
-def random_mask(observed_values, missing_ratio=0.1, seed=20261029):
+def random_mask(observed_values, missing_ratio=0.1, seed=20260720):
     observed_masks = ~np.isnan(observed_values)
 
     masks = observed_masks.reshape(-1).copy()

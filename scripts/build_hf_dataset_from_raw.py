@@ -22,7 +22,7 @@ from sequence_dataset import (
 )
 
 
-GHS_EPOCHS = (2005, 2010, 2015, 2020)
+GHS_EPOCHS = (2000, 2005, 2010, 2015, 2020)
 FIRST_YEAR = 2003
 MONTHS_TOTAL = 216
 FIRST_TARGET_INDEX = 12
@@ -59,7 +59,10 @@ def date_from_index(index: int) -> tuple[int, int]:
 
 
 def epoch_index(target_year: int) -> int:
-    return max(0, bisect_right(GHS_EPOCHS, target_year) - 1)
+    index = bisect_right(GHS_EPOCHS, target_year) - 1
+    if index < 0:
+        raise ValueError(f"no GHS epoch at or before {target_year}")
+    return index
 
 
 def read_indexed(path: Path, columns: list[str] | None = None) -> pd.DataFrame:

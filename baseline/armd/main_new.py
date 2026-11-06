@@ -41,7 +41,7 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
     os.environ['PYTHONHASHSEED'] = str(seed)
 
-set_seed(20261029)
+set_seed(20260720)
 
 
 def inclusive_month_count(start_period, end_period):

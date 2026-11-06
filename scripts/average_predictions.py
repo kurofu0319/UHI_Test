@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -40,17 +42,64 @@ def prediction_keys(data: pd.DataFrame) -> set[tuple]:
     return set(data[KEYS].itertuples(index=False, name=None))
 
 
+def average_members(predictions: pd.DataFrame) -> pd.Series:
+    return predictions.mean(axis=1)
+
+
+def benchmark_aggregation(args, predictions: pd.DataFrame) -> None:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+    from efficiency import detected_hardware, write_measurement
+
+    batch = predictions.iloc[:args.efficiency_batch_size]
+    if len(batch) != args.efficiency_batch_size:
+        raise ValueError(f"aggregation benchmark requires {args.efficiency_batch_size} samples")
+    for _ in range(args.efficiency_warmup_calls):
+        average_members(batch)
+    elapsed = 0.0
+    for _ in range(args.efficiency_measured_calls):
+        start = time.perf_counter()
+        average_members(batch)
+        elapsed += time.perf_counter() - start
+    write_measurement(
+        args.efficiency_record,
+        kind="inference",
+        method="UHI-E3LLM",
+        stage="prediction_aggregation",
+        value=elapsed * 1000 / (len(batch) * args.efficiency_measured_calls),
+        unit="ms_per_sample",
+        hardware=detected_hardware("cpu"),
+        note="prediction aggregation: arithmetic mean of aligned member outputs",
+        metadata={
+            "batch_size": len(batch),
+            "warmup_calls": args.efficiency_warmup_calls,
+            "measured_calls": args.efficiency_measured_calls,
+            "timing_protocol": "independent_repetitions_mean",
+            "members": predictions.shape[1],
+        },
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", nargs="+", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--expected-cities", type=int, default=0)
     parser.add_argument("--expected-samples-per-city", type=int, default=36)
+    parser.add_argument("--efficiency-record", type=Path)
+    parser.add_argument("--efficiency-batch-size", type=int, default=36)
+    parser.add_argument("--efficiency-warmup-calls", type=int, default=5)
+    parser.add_argument("--efficiency-measured-calls", type=int, default=5)
     args = parser.parse_args()
     if args.expected_cities < 0:
         parser.error("--expected-cities must be non-negative")
     if args.expected_samples_per_city <= 0:
         parser.error("--expected-samples-per-city must be positive")
+    if args.efficiency_record and (
+        args.efficiency_batch_size <= 0
+        or args.efficiency_warmup_calls < 0
+        or args.efficiency_measured_calls <= 0
+    ):
+        parser.error("invalid aggregation benchmark settings")
 
     merged = load_checkpoint(args.input[0], 0)
     expected_keys = prediction_keys(merged)
@@ -84,7 +133,10 @@ def main() -> None:
             f"found {city_count} cities and {len(merged)} rows. "
             f"Wrong per-city counts: {wrong_city_counts}."
         )
-    merged["predicted_uhi"] = merged[prediction_columns].mean(axis=1)
+    member_predictions = merged[prediction_columns]
+    if args.efficiency_record:
+        benchmark_aggregation(args, member_predictions)
+    merged["predicted_uhi"] = average_members(member_predictions)
     error = merged["predicted_uhi"] - merged["true_uhi"]
     merged["absolute_error"] = error.abs()
     merged["squared_error"] = error.pow(2)

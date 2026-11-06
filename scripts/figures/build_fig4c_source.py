@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from sequence_dataset import FEATURE_INDEX, load_city_matrix
 
 
 DATASET_SPECS = {
@@ -51,6 +56,54 @@ DATASET_SPECS = {
 }
 
 
+TENSOR_COLUMNS = {
+    "Wind_Speed_10m_Mean": "wind_speed",
+    "Temperature_Air_2m_Mean_24h": "temperature",
+    "Cloud_Cover_Mean": "cloud_cover",
+    "Precipitation_Flux": "precipitation_flux",
+    "Snow_Thickness_Mean": "snow_thickness",
+    "Vapour_Pressure_Mean": "vapour_pressure",
+    "Solar_Radiation_Flux": "solar_radiation",
+    "built_surface": "built_surface_density",
+    "population_count": "population_density",
+    "smod_code": "urbanization_level",
+    "NDVI": "ndvi",
+    "EVI": "evi",
+    "b1": "pm25",
+}
+LEGACY_GHS_ROWS = {2005: 200401, 2010: 200501, 2015: 201001, 2020: 201501}
+GHS_RAW_DIVISORS = {"built_surface": 100.0, "population_count": 100.0, "smod_code": 1.0}
+
+
+def collect_tensor_records(data_dir: Path, city_ids: set[int]) -> pd.DataFrame:
+    cities = [load_city_matrix(data_dir, city_id) for city_id in sorted(city_ids)]
+    dates = cities[0][0]
+    values = np.stack([matrix for _, matrix in cities])
+    ghs_indices = np.searchsorted(dates, list(LEGACY_GHS_ROWS.values()))
+    ghs_dates = [f"{year}-01-01" for year in LEGACY_GHS_ROWS]
+    monthly_dates = [f"{date // 100:04d}-{date % 100:02d}-01" for date in dates]
+
+    tables = []
+    for group, spec in DATASET_SPECS.items():
+        for column, label in spec["columns"].items():
+            series = values[:, :, FEATURE_INDEX[TENSOR_COLUMNS[column]]]
+            if column in GHS_RAW_DIVISORS:
+                changes = set(dates[1:][np.any(series[:, 1:] != series[:, :-1], axis=0)])
+                if not changes.issubset(LEGACY_GHS_ROWS.values()):
+                    raise ValueError(f"{data_dir}: {column} does not use the released GHS year mapping")
+                series = series[:, ghs_indices] / GHS_RAW_DIVISORS[column]
+                factor_dates = ghs_dates
+            else:
+                factor_dates = monthly_dates
+            tables.append(pd.DataFrame({
+                "date": factor_dates,
+                "group": group,
+                "factor": label,
+                "raw_mean": series.mean(axis=0),
+            }))
+    return normalize_records(pd.concat(tables, ignore_index=True))
+
+
 def collect_records(
     raw_data: Path, city_ids: set[int] | None = None
 ) -> pd.DataFrame:
@@ -92,7 +145,10 @@ def collect_records(
             raise FileNotFoundError(
                 f"no files matching {spec['pattern']} below {directory}"
             )
-    table = pd.DataFrame.from_records(records)
+    return normalize_records(pd.DataFrame.from_records(records))
+
+
+def normalize_records(table: pd.DataFrame) -> pd.DataFrame:
     table["normalized_value"] = table.groupby("factor")["raw_mean"].transform(
         lambda values: (
             (values - values.min()) / (values.max() - values.min())
@@ -105,7 +161,9 @@ def collect_records(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--raw-data", type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--raw-data", type=Path)
+    source.add_argument("--data-dir", type=Path)
     parser.add_argument(
         "--output",
         type=Path,
@@ -121,7 +179,12 @@ def main() -> None:
     city_ids = None
     if args.city_ids:
         city_ids = {int(value.strip()) for value in args.city_ids.split(",")}
-    table = collect_records(args.raw_data, city_ids=city_ids)
+    if args.data_dir is not None:
+        if not city_ids:
+            parser.error("--data-dir requires --city-ids")
+        table = collect_tensor_records(args.data_dir, city_ids)
+    else:
+        table = collect_records(args.raw_data, city_ids=city_ids)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     table.to_csv(args.output, index=False)
     print(f"Wrote {len(table)} factor-date rows to {args.output}")

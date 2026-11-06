@@ -41,7 +41,7 @@ dataloader:
       window: 24
       save2npy: True
       neg_one_to_one: True
-      seed: 20261029
+      seed: 20260720
       period: train
 
   test_dataset:
@@ -53,7 +53,7 @@ dataloader:
       window: 24
       save2npy: True
       neg_one_to_one: True
-      seed: 20261029
+      seed: 20260720
       period: test
       style: separate
       distribution: geometric

@@ -35,7 +35,7 @@ GROUPS = {
 }
 TRAINING_ORDER = [
     ("UHI-E3LLM", "SFT"), ("UHI-E3LLM", "PPO"),
-    ("UHI-E3LLM", "Distillation"), ("UHI-E3LLM", "Total"),
+    ("UHI-E3LLM", "Total"),
     ("ARMD", "train"), ("FilterNet", "train"), ("ST-MTM", "train"),
     ("XGBoost", "train"), ("RandomForest", "train"),
     ("LightGBM", "train"), ("MLP", "train"),
@@ -88,17 +88,20 @@ def main() -> None:
     values = pd.to_numeric(table["value"], errors="raise")
     if not np.isfinite(values).all() or not values.gt(0).all():
         raise ValueError("efficiency measurements must be finite and positive")
-    inference_rows = table[table["kind"] == "inference"]
-    if not inference_rows["note"].str.contains(
+    baseline_inference = table[
+        (table["kind"] == "inference") & (table["method"] != "UHI-E3LLM")
+    ]
+    if not baseline_inference["note"].str.contains(
         "model execution only", case=False, na=False
     ).all():
         raise ValueError(
-            "inference rows must identify the pure model-execution timing boundary"
+            "baseline inference rows must identify the model-execution timing boundary"
         )
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
     training = table[table["kind"] == "training"].set_index(["method", "stage"])
-    missing_training = [key for key in TRAINING_ORDER if key not in training.index]
+    required_training = [*TRAINING_ORDER, ("UHI-E3LLM", "Distillation")]
+    missing_training = [key for key in required_training if key not in training.index]
     if missing_training:
         raise ValueError(f"missing training-efficiency rows: {missing_training}")
     sft_seconds = float(training.loc[("UHI-E3LLM", "SFT"), "value"])
@@ -130,6 +133,8 @@ def main() -> None:
     missing_inference = [method for method in INFERENCE_ORDER if method not in inference.index]
     if missing_inference:
         raise ValueError(f"missing inference-efficiency rows: {missing_inference}")
+    if "prediction aggregation" not in str(inference.loc["UHI-E3LLM", "note"]):
+        raise ValueError("UHI-E3LLM inference time must include prediction aggregation")
     labels, values, colors = [], [], []
     for method in INFERENCE_ORDER:
         if method not in inference.index:

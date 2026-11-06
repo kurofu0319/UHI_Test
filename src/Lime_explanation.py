@@ -276,7 +276,7 @@ if __name__ == "__main__":
         help="Explanation adapters corresponding to --models, in the same order.",
     )
     parser.add_argument('--num_samples', type=int, default=1000)
-    parser.add_argument('--seed', type=int, default=20261029)
+    parser.add_argument('--seed', type=int, default=20260720)
     parser.add_argument('--valid_min', type=float, default=-5.0)
     parser.add_argument('--valid_max', type=float, default=5.0)
     parser.add_argument('--max_decimal_places', type=int, default=3)

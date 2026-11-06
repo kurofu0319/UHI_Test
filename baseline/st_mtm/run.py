@@ -140,7 +140,7 @@ parser.add_argument('--topk', type=int, default=3, help='number of masked series
 parser.add_argument('--tau', default=0.1, type=float)
 parser.add_argument('--alpha', default=0.5, type=float)
 
-parser.add_argument('--seed', default=20261029, type=int)
+parser.add_argument('--seed', default=20260720, type=int)
 
 args = parser.parse_args()
 args.uhi_data_dir = os.path.abspath(args.uhi_data_dir)

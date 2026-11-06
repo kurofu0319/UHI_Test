@@ -436,7 +436,7 @@ def main():
         default=str(project_root / "outputs" / "baselines" / "tabular"),
     )
     parser.add_argument("--models", nargs="+", default=["xgb", "lgb", "rf", "mlp"], choices=["xgb", "lgb", "rf", "mlp"])
-    parser.add_argument("--seed", type=int, default=20261029)
+    parser.add_argument("--seed", type=int, default=20260720)
     parser.add_argument("--n_jobs", type=int, default=64)
     parser.add_argument("--xgb_device", default="cuda")
     parser.add_argument("--lgb_device", choices=["gpu", "cpu"], default="gpu")

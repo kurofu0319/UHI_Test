@@ -58,6 +58,20 @@ def load_local_lora_adapter(model, adapter_dir):
     return model
 
 
+def generate_and_parse(args, model, tokenizer, generation_kwargs):
+    outputs = model.generate(**generation_kwargs)
+    generated_tokens = outputs[:, generation_kwargs["input_ids"].size(1) :]
+    return [
+        parse_prediction(
+            tokenizer.decode(seq, skip_special_tokens=True),
+            valid_min=args.valid_min,
+            valid_max=args.valid_max,
+            max_decimal_places=args.max_decimal_places,
+        )
+        for seq in generated_tokens
+    ]
+
+
 def benchmark_inference(args, model, tokenizer, test_datasets, prompt_builder):
     prompts = []
     target_count = args.efficiency_batch_size
@@ -94,7 +108,7 @@ def benchmark_inference(args, model, tokenizer, test_datasets, prompt_builder):
     if args.temperature > 0:
         generation_kwargs["temperature"] = args.temperature
     latency = benchmark_model_call(
-        lambda: model.generate(**generation_kwargs),
+        lambda: generate_and_parse(args, model, tokenizer, generation_kwargs),
         sample_count=target_count,
         warmup_calls=args.efficiency_warmup_calls,
         measured_calls=args.efficiency_measured_calls,
@@ -110,12 +124,13 @@ def benchmark_inference(args, model, tokenizer, test_datasets, prompt_builder):
         ),
         value=latency,
         unit="ms_per_sample",
-        note="model execution only; excludes loading, prompt construction, tokenization, parsing, and file I/O",
+        note="generation, decoding, and numeric parsing",
         metadata={
             "batch_size": target_count,
             "warmup_calls": args.efficiency_warmup_calls,
             "measured_calls": args.efficiency_measured_calls,
             "timing_protocol": "independent_repetitions_mean",
+            "timing_scope": "generation_decode_parse",
             "max_new_tokens": args.max_new_tokens,
             "max_length": args.max_length,
             "temperature": args.temperature,
@@ -188,23 +203,13 @@ def inference(args, model, tokenizer, test_datasets):
             for r in range(n_runs):
                 if n_runs > 1 and args.temperature > 0:
                     torch.manual_seed(args.base_seed + r)
-                outputs = model.generate(**gen_kwargs)
-                generated_tokens = outputs[:, inputs.input_ids.size(1) :]
-                run_parsed = []
-                for seq in generated_tokens:
-                    text = tokenizer.decode(seq, skip_special_tokens=True)
-                    parsed = parse_prediction(
-                        text,
-                        valid_min=args.valid_min,
-                        valid_max=args.valid_max,
-                        max_decimal_places=args.max_decimal_places,
-                    )
+                run_parsed = generate_and_parse(args, model, tokenizer, gen_kwargs)
+                for parsed in run_parsed:
                     if not parsed.is_valid:
                         print(
                             f"  [WARN] Invalid output ({parsed.invalid_reason}): "
-                            f"'{text[:120]}'"
+                            f"'{parsed.raw_text[:120]}'"
                         )
-                    run_parsed.append(parsed)
                 all_parsed.append(run_parsed)
 
             results = []
@@ -435,7 +440,7 @@ if __name__ == "__main__":
         "--num_runs", type=int, default=1, help="Number of inference runs for averaging"
     )
     parser.add_argument(
-        "--base_seed", type=int, default=20261029, help="Base seed for multi-run"
+        "--base_seed", type=int, default=20260720, help="Base seed for multi-run"
     )
     parser.add_argument(
         "--temperature",

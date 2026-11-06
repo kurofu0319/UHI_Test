@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
 from efficiency import write_measurement
 
 if __name__ == '__main__':
-    fix_seed = 20261029
+    fix_seed = 20260720
     random.seed(fix_seed)
     torch.manual_seed(fix_seed)
     np.random.seed(fix_seed)

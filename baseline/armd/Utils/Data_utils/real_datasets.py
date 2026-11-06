@@ -19,7 +19,7 @@ class CustomDataset(Dataset):
         proportion=0.8,
         save2npy=True,
         neg_one_to_one=True,
-        seed=20261029,
+        seed=20260720,
         period='train',
         output_dir='./OUTPUT',
         predict_length=None,
@@ -129,7 +129,7 @@ class CustomDataset(Dataset):
         return self.scaler.inverse_transform(x)
 
     @staticmethod
-    def divide(data, ratio, seed=20261029):
+    def divide(data, ratio, seed=20260720):
         size = data.shape[0]
         st0 = np.random.get_state()
         np.random.seed(seed)
@@ -182,7 +182,7 @@ class CustomDataset(Dataset):
         scaler = scaler.fit(data[np.asarray(fit_mask)])
         return data, scaler, timestamps
 
-    def mask_data(self, seed=20261029):
+    def mask_data(self, seed=20260720):
         masks = np.ones_like(self.samples)
         st0 = np.random.get_state()
         np.random.seed(seed)

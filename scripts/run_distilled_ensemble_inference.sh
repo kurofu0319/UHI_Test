@@ -74,9 +74,15 @@ for epoch in "${epochs[@]}"; do
   inference_inputs+=("${DISTILLED_OUTPUT_DIR}/epoch${epoch}")
 done
 
+aggregation_timing=()
+if [[ -n "${DISTILLED_EFFICIENCY_RECORD}" ]]; then
+  aggregation_timing=(--efficiency-record "${DISTILLED_EFFICIENCY_RECORD%.json}_aggregation.json")
+fi
+
 run_logged "${DISTILLED_LOG_PREFIX}_ensemble" "${PYTHON}" \
   scripts/average_predictions.py \
   --input "${inference_inputs[@]}" \
   --output "${DISTILLED_ENSEMBLE_OUTPUT}" \
   --expected-cities "${DISTILLED_EXPECTED_CITIES}" \
-  --expected-samples-per-city "${DISTILLED_EXPECTED_SAMPLES_PER_CITY}"
+  --expected-samples-per-city "${DISTILLED_EXPECTED_SAMPLES_PER_CITY}" \
+  "${aggregation_timing[@]}"

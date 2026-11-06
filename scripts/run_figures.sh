@@ -4,7 +4,7 @@ cd "${ROOT}"
 
 FIGURE_DATA_DIR="${FIGURE_DATA_DIR:-${OUTPUT_ROOT}/figures/data}"
 FIGURE_DIR="${FIGURE_DIR:-${OUTPUT_ROOT}/figures}"
-FIG4C_RAW_DATA_DIR="${FIG4C_RAW_DATA_DIR:-${RAW_DATA_DIR:-${DATA_DIR}/raw}}"
+FIG4C_RAW_DATA_DIR="${FIG4C_RAW_DATA_DIR:-${RAW_DATA_DIR:-}}"
 FIG4C_SOURCE="${FIGURE_DATA_DIR}/fig4c_factor_evolution_5cities.csv"
 mkdir -p "${FIGURE_DIR}" "${FIGURE_DATA_DIR}"
 
@@ -25,16 +25,15 @@ step fig2 scripts/figures/plot_fig2_dataset.py \
 step fig2h scripts/figures/plot_fig2h_factor_evidence.py \
   --out-dir "${FIGURE_DIR}" || true
 
-if step fig4c_source scripts/figures/build_fig4c_source.py \
-  --raw-data "${FIG4C_RAW_DATA_DIR}" \
-  --city-ids 864,677,222,661,413 \
-  --output "${FIG4C_SOURCE}"; then
-  step fig4 scripts/figures/plot_fig4_case_study.py \
-    --data-dir "${DATA_DIR}" --out-dir "${FIGURE_DIR}" \
-    --fig4c-source "${FIG4C_SOURCE}" || true
-else
-  echo "[skip] fig4: five-city factor source could not be generated" >&2
+fig4c_input=(--data-dir "${DATA_DIR}")
+# Rebuild from preprocessing: set FIG4C_RAW_DATA_DIR to use the raw factor CSVs.
+if [[ -n "${FIG4C_RAW_DATA_DIR}" ]]; then
+  fig4c_input=(--raw-data "${FIG4C_RAW_DATA_DIR}")
 fi
+run_logged figures_fig4c_source "${PYTHON}" scripts/figures/build_fig4c_source.py \
+  "${fig4c_input[@]}" --city-ids 864,677,222,661,413 --output "${FIG4C_SOURCE}"
+run_logged figures_fig4 "${PYTHON}" scripts/figures/plot_fig4_case_study.py \
+  --data-dir "${DATA_DIR}" --out-dir "${FIGURE_DIR}" --fig4c-source "${FIG4C_SOURCE}"
 
 step fig5 scripts/figures/plot_fig5_case_study.py \
   --predictions "${OUTPUT_ROOT}/case_study/inference_train" \

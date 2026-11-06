@@ -105,7 +105,7 @@ def plot_fig3a(city: pd.DataFrame, out_dir: Path) -> None:
     if methods != METHOD_ORDER:
         raise ValueError(f"Fig. 3a requires all methods in order {METHOD_ORDER}; got {methods}")
     positions = list(range(1, len(methods) + 1))
-    rng = np.random.default_rng(20261029)
+    rng = np.random.default_rng(20260720)
     figure, axis = plt.subplots(figsize=(8.5, max(4.2, 0.78 * len(methods))))
 
     values_by_method: dict[str, np.ndarray] = {}

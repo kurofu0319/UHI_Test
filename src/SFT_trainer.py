@@ -143,13 +143,13 @@ if __name__ == "__main__":
     )
     parser.add_argument("--gradient_accumulation", type=int, default=1)
     parser.add_argument("--num_workers", type=int, default=4)
-    parser.add_argument("--seed", type=int, default=20261029)
+    parser.add_argument("--seed", type=int, default=20260720)
     parser.add_argument("--expected_cities", type=int, default=0)
     parser.add_argument("--expected_samples_per_city", type=int, default=0)
     parser.add_argument(
         "--data_seed",
         type=int,
-        default=20261029,
+        default=20260720,
         help="Data-loader random seed.",
     )
     parser.add_argument(

@@ -34,7 +34,7 @@ def main() -> None:
     parser.add_argument("--predictions", type=Path, required=True)
     parser.add_argument("--output_dir", type=Path, required=True)
     parser.add_argument("--replicates", type=int, default=1000)
-    parser.add_argument("--seed", type=int, default=20261029)
+    parser.add_argument("--seed", type=int, default=20260720)
     parser.add_argument("--expected_cities", type=int, default=100)
     parser.add_argument("--expected_samples_per_city", type=int, default=36)
     args = parser.parse_args()

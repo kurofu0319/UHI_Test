@@ -578,7 +578,7 @@ def parse_args():
     parser.add_argument("--expected-train-cities", type=int, default=500)
     parser.add_argument("--expected-train-samples-per-city", type=int, default=168)
     parser.add_argument("--sample-count", type=int, default=900)
-    parser.add_argument("--sampling-seed", type=int, default=20261029)
+    parser.add_argument("--sampling-seed", type=int, default=20260720)
     parser.add_argument("--first-target", type=_parse_month, default=(2004, 1))
     parser.add_argument("--last-target", type=_parse_month, default=(2017, 12))
     parser.add_argument("--api-model", default="deepseek-reasoner")

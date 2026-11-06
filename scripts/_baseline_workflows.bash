@@ -79,7 +79,7 @@ run_global_tabular_baselines() {
     --dataset_path "${DATA_DIR}" \
     --output_dir "${OUTPUT_ROOT}/baselines/tabular" \
     --models xgb lgb rf mlp \
-    --seed 20261029 \
+    --seed 20260720 \
     --n_jobs "${N_JOBS:-64}" \
     --xgb_device "${XGB_DEVICE:-cuda}" \
     --lgb_device "${LGB_DEVICE:-gpu}" \
@@ -97,7 +97,7 @@ run_regional_tabular_baselines() {
     --output_dir "${OUTPUT_ROOT}/regional/tabular_results" \
     --models xgb lgb rf mlp \
     --regions "${region}" \
-    --seed 20261029 \
+    --seed 20260720 \
     --n_jobs "${N_JOBS:-32}" \
     --xgb_device "${XGB_DEVICE:-cuda}" \
     --lgb_device "${LGB_DEVICE:-gpu}" \
