@@ -146,10 +146,10 @@ def plot_fig7a(bootstrap_root: Path, out_dir: Path, data_dir: Path) -> None:
         patch.set_facecolor("white")
         patch.set_edgecolor("#4D4D4D")
         patch.set_alpha(0.9)
-    medians = np.array([np.median(values) for values in arrays])
+    means = np.array([values.mean() for values in arrays])
     q05 = np.array([np.quantile(values, 0.05) for values in arrays])
     q95 = np.array([np.quantile(values, 0.95) for values in arrays])
-    axis.scatter(medians, y, s=18, color="#111111", zorder=5)
+    axis.scatter(means, y, s=18, color="#111111", zorder=5)
     for yi, low, high in zip(y, q05, q95):
         axis.hlines(yi, low, high, color="#222222", linewidth=1.15, zorder=4)
         axis.vlines(
@@ -186,7 +186,7 @@ def plot_fig7a(bootstrap_root: Path, out_dir: Path, data_dir: Path) -> None:
     summary = pd.DataFrame(
         {
             "method": METHOD_ORDER,
-            "mae_mean": [values.mean() for values in arrays],
+            "mae_mean": means,
             "mae_ci90_low": q05,
             "mae_ci90_high": q95,
         }
